@@ -4,6 +4,15 @@ set -e
 # Update packages
 yum update -y
 
+# Install CodeDeploy Agent
+yum install -y ruby wget
+cd /home/ec2-user
+wget https://aws-codedeploy-${AWS_REGION}.s3.${AWS_REGION}.amazonaws.com/latest/install
+chmod +x ./install
+./install auto
+systemctl start codedeploy-agent
+systemctl enable codedeploy-agent
+
 # Install Apache
 yum install -y httpd
 

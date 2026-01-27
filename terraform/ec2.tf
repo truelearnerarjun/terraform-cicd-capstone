@@ -3,6 +3,7 @@ resource "aws_instance" "web1" {
   instance_type          = "t3.micro"
   subnet_id              = aws_subnet.public_1.id
   vpc_security_group_ids = [aws_security_group.ec2_sg.id]
+  iam_instance_profile   = aws_iam_instance_profile.ec2_profile.name
   user_data              = file("${path.module}/user_data.sh")
 }
 
@@ -11,6 +12,7 @@ resource "aws_instance" "web2" {
   instance_type          = "t3.micro"
   subnet_id              = aws_subnet.public_2.id
   vpc_security_group_ids = [aws_security_group.ec2_sg.id]
+  iam_instance_profile   = aws_iam_instance_profile.ec2_profile.name
   user_data              = file("${path.module}/user_data.sh")
 }
  

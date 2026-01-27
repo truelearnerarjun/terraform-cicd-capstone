@@ -197,3 +197,85 @@ resource "aws_codepipeline" "terraform_pipeline" {
     aws_s3_bucket.codepipeline_bucket
   ]
 }
+
+
+############################################
+# 6) IAM Role for EC2 (CodeDeploy Agent)
+############################################
+resource "aws_iam_role" "ec2_codedeploy_role" {
+  name = "${var.project_name}-ec2-codedeploy-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Principal = {
+        Service = "ec2.amazonaws.com"
+      }
+      Action = "sts:AssumeRole"
+    }]
+  })
+}
+
+resource "aws_iam_role_policy" "ec2_codedeploy_policy" {
+  name = "${var.project_name}-ec2-codedeploy-policy"
+  role = aws_iam_role.ec2_codedeploy_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      # CodeDeploy agent permissions
+      {
+        Effect = "Allow"
+        Action = [
+          "codedeploy:CreateDeploymentConfig",
+          "codedeploy:CreateDeploymentGroup",
+          "codedeploy:CreateDeployment",
+          "codedeploy:GetApplication",
+          "codedeploy:GetApplicationRevision",
+          "codedeploy:GetDeployment",
+          "codedeploy:GetDeploymentConfig",
+          "codedeploy:GetDeploymentGroup",
+          "codedeploy:GetDeploymentInstance",
+          "codedeploy:ListApplicationRevisions",
+          "codedeploy:ListDeploymentConfigs",
+          "codedeploy:ListDeploymentGroups",
+          "codedeploy:ListDeployments",
+          "codedeploy:ListInstances",
+          "codedeploy:PutLifecycleEventHookExecutionStatus",
+          "codedeploy:RegisterApplicationRevision",
+          "codedeploy:StopDeployment"
+        ]
+        Resource = "*"
+      },
+      # S3 access for deployment artifacts
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:GetObject",
+          "s3:ListBucket"
+        ]
+        Resource = [
+          aws_s3_bucket.codepipeline_bucket.arn,
+          "${aws_s3_bucket.codepipeline_bucket.arn}/*"
+        ]
+      },
+      # CloudWatch Logs for CodeDeploy
+      {
+        Effect = "Allow"
+        Action = [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents",
+          "logs:DescribeLogStreams"
+        ]
+        Resource = "arn:aws:logs:*:*:*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_instance_profile" "ec2_profile" {
+  name = "${var.project_name}-ec2-profile"
+  role = aws_iam_role.ec2_codedeploy_role.name
+}
