@@ -14,12 +14,12 @@ phases:
     commands:
       - echo "Starting Terraform Build..."
       - cd terraform
-      - export TF_LOG=ERROR # This will show you the ACTUAL error in CodeBuild logs
+      - export TF_LOG=ERROR
       - terraform init -input=false
-      - terraform refresh
       - terraform validate
-      # Always use a plan file in CI/CD for better reliability
-      - terraform plan -out=tfplan
+      - echo "Checking for drift..."
+      - terraform plan -detailed-exitcode -out=tfplan || DRIFT=$?
+      - if [ "$DRIFT" = "2" ]; then echo "⚠️ DRIFT DETECTED - Infrastructure differs from code"; fi
       - terraform apply -auto-approve tfplan
 artifacts:
   files:
