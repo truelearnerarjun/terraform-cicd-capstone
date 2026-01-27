@@ -3,5 +3,5 @@ variable "aws_region" {
 }
 
 variable "project_name" {
-  default = "group1-cicd"
+  default = "group2-cicd"
 }
