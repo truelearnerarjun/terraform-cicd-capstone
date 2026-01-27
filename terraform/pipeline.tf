@@ -61,8 +61,10 @@ resource "aws_codebuild_project" "terraform_build" {
 
 # 5. CodePipeline
 resource "aws_codepipeline" "terraform_pipeline" {
-  name     = "${var.project_name}-pipeline"
-  role_arn = aws_iam_role.pipeline_role.arn
+  name             = "${var.project_name}-pipeline"
+  role_arn         = aws_iam_role.pipeline_role.arn
+  pipeline_type    = "V2"
+  execution_mode   = "QUEUED"
 
   artifact_store {
     type     = "S3"
