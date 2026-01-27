@@ -3,7 +3,4 @@
 *.tfstate.*
 *.tfvars
 crash.log
-
-aws/
-
-awscliv2.zip
+.aws/
