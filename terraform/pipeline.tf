@@ -42,33 +42,44 @@ resource "aws_iam_role_policy" "pipeline_policy" {
       {
         Effect = "Allow"
         Action = [
-          "s3:GetObject",
-          "s3:PutObject",
-          "s3:GetBucketVersioning"
+          "s3:*"
         ]
         Resource = [
           aws_s3_bucket.codepipeline_bucket.arn,
-          "${aws_s3_bucket.codepipeline_bucket.arn}/*"
+          "${aws_s3_bucket.codepipeline_bucket.arn}/*",
+          "arn:aws:s3:::group2-terraform-state",
+          "arn:aws:s3:::group2-terraform-state/*"
         ]
       },
       {
         Effect = "Allow"
         Action = [
-          "s3:GetObject",
-          "s3:PutObject"
+          "codepipeline:*",
+          "codebuild:*",
+          "codestar-connections:*",
+          "codedeploy:*"
         ]
-        Resource = "arn:aws:s3:::group2-terraform-state/*"
+        Resource = "*"
       },
       {
         Effect = "Allow"
         Action = [
           "ec2:*",
-          "elasticloadbalancing:*",
+          "elasticloadbalancing:*"
+        ]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
           "iam:GetRole",
           "iam:PassRole",
           "iam:CreateRole",
           "iam:PutRolePolicy",
-          "iam:AttachRolePolicy"
+          "iam:AttachRolePolicy",
+          "iam:GetRolePolicy",
+          "iam:DeleteRolePolicy",
+          "iam:DetachRolePolicy"
         ]
         Resource = "*"
       },
@@ -77,9 +88,18 @@ resource "aws_iam_role_policy" "pipeline_policy" {
         Action = [
           "logs:CreateLogGroup",
           "logs:CreateLogStream",
-          "logs:PutLogEvents"
+          "logs:PutLogEvents",
+          "logs:DescribeLogStreams"
         ]
         Resource = "arn:aws:logs:*:*:*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "cloudformation:*",
+          "cloudwatch:*"
+        ]
+        Resource = "*"
       }
     ]
   })
