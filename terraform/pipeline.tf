@@ -61,9 +61,8 @@ resource "aws_codebuild_project" "terraform_build" {
 
 # 5. CodePipeline
 resource "aws_codepipeline" "terraform_pipeline" {
-  name          = "${var.project_name}-pipeline"
-  role_arn      = aws_iam_role.pipeline_role.arn
-  pipeline_type = "V2" # Modern pipeline type
+  name     = "${var.project_name}-pipeline"
+  role_arn = aws_iam_role.pipeline_role.arn
 
   artifact_store {
     type     = "S3"
@@ -72,35 +71,100 @@ resource "aws_codepipeline" "terraform_pipeline" {
 
   stage {
     name = "Source"
+
     action {
-      name             = "Source"
+      name             = "SourceAction"
       category         = "Source"
       owner            = "AWS"
-      provider         = "CodeStarSourceConnection" # Updated to V2
+      provider         = "CodeStarSourceConnection"
       version          = "1"
-      output_artifacts = ["source_output"]
+      output_artifacts = ["SourceOutput"]
 
       configuration = {
         ConnectionArn    = aws_codestarconnections_connection.github.arn
-        FullRepositoryId = "truelearnerarjun/terraform-cicd-capstone" 
+        FullRepositoryId = "truelearnerarjun/terraform-cicd-capstone"
         BranchName       = "main"
+        PollForSourceChanges = false
       }
     }
   }
 
   stage {
     name = "Build"
+
     action {
-      name            = "Terraform"
-      category        = "Build"
-      owner           = "AWS"
-      provider        = "CodeBuild"
-      input_artifacts = ["source_output"]
-      version         = "1"
+      name             = "BuildAction"
+      category         = "Build"
+      owner            = "AWS"
+      provider         = "CodeBuild"
+      input_artifacts  = ["SourceOutput"]
+      output_artifacts = ["BuildOutput"]
+      version          = "1"
 
       configuration = {
         ProjectName = aws_codebuild_project.terraform_build.name
       }
     }
   }
+
+  depends_on = [
+    aws_iam_role_policy_attachment.pipeline_admin,
+    aws_s3_bucket.codepipeline_bucket
+  ]
+}
+
+# EventBridge Rule for automatic pipeline triggering on GitHub push
+resource "aws_cloudwatch_event_rule" "github_push" {
+  name        = "${var.project_name}-github-push"
+  description = "Trigger CodePipeline on GitHub push"
+
+  event_pattern = jsonencode({
+    source      = ["aws.codestar-connections"]
+    detail-type = ["CodeStar Connections Repository State Change"]
+    detail = {
+      event = ["push"]
+      referenceType = ["branch"]
+      referenceName = ["main"]
+      repositoryName = ["terraform-cicd-capstone"]
+    }
+  })
+}
+
+resource "aws_cloudwatch_event_target" "codepipeline" {
+  rule      = aws_cloudwatch_event_rule.github_push.name
+  target_id = "CodePipeline"
+  arn       = aws_codepipeline.terraform_pipeline.arn
+  role_arn  = aws_iam_role.eventbridge_role.arn
+}
+
+# IAM Role for EventBridge
+resource "aws_iam_role" "eventbridge_role" {
+  name = "${var.project_name}-eventbridge-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Principal = {
+        Service = "events.amazonaws.com"
+      }
+      Action = "sts:AssumeRole"
+    }]
+  })
+}
+
+resource "aws_iam_role_policy" "eventbridge_policy" {
+  name = "${var.project_name}-eventbridge-policy"
+  role = aws_iam_role.eventbridge_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Action = [
+        "codepipeline:StartPipelineExecution"
+      ]
+      Resource = aws_codepipeline.terraform_pipeline.arn
+    }]
+  })
 }
