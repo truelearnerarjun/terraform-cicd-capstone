@@ -92,6 +92,7 @@ resource "aws_iam_role_policy" "pipeline_policy" {
           "events:DescribeRule",
           "events:ListRules",
           "events:ListTargetsByRule",
+          "events:ListTagsForResource",
           "events:PutRule",
           "events:PutTargets",
           "events:RemoveTargets",
