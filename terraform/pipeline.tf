@@ -84,7 +84,6 @@ resource "aws_codepipeline" "terraform_pipeline" {
         ConnectionArn    = aws_codestarconnections_connection.github.arn
         FullRepositoryId = "truelearnerarjun/terraform-cicd-capstone"
         BranchName       = "main"
-        PollForSourceChanges = false
       }
     }
   }
