@@ -84,7 +84,10 @@ resource "aws_iam_role_policy" "pipeline_policy" {
           "iam:DetachRolePolicy",
           "iam:ListRolePolicies",
           "iam:ListRoles",
-          "iam:ListAttachedRolePolicies"
+          "iam:ListAttachedRolePolicies",
+          "iam:ListInstanceProfilesForRole",
+          "iam:DeleteRole",
+          "iam:UntagRole"
         ]
         Resource = "*"
       },
