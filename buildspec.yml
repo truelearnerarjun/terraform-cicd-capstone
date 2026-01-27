@@ -16,6 +16,7 @@ phases:
       - cd terraform
       - export TF_LOG=ERROR # This will show you the ACTUAL error in CodeBuild logs
       - terraform init -input=false
+      - terraform refresh
       - terraform validate
       # Always use a plan file in CI/CD for better reliability
       - terraform plan -out=tfplan
