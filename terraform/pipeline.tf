@@ -79,7 +79,23 @@ resource "aws_iam_role_policy" "pipeline_policy" {
           "iam:AttachRolePolicy",
           "iam:GetRolePolicy",
           "iam:DeleteRolePolicy",
-          "iam:DetachRolePolicy"
+          "iam:DetachRolePolicy",
+          "iam:ListRolePolicies",
+          "iam:ListRoles",
+          "iam:ListAttachedRolePolicies"
+        ]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "events:DescribeRule",
+          "events:ListRules",
+          "events:ListTargetsByRule",
+          "events:PutRule",
+          "events:PutTargets",
+          "events:RemoveTargets",
+          "events:DeleteRule"
         ]
         Resource = "*"
       },
