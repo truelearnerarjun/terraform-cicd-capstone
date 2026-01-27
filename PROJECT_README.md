@@ -20,7 +20,7 @@ This is a **fully automated Terraform CI/CD pipeline** that deploys a scalable A
 │                                                          │
 │  1. Developer pushes code to GitHub (main branch)       │
 │             ↓                                            │
-│  2. CodePipeline automatically triggered                │
+│  2. CodePipeline triggered                
 │             ↓                                            │
 │  3. CodeBuild pulls code from GitHub                    │
 │             ↓                                            │

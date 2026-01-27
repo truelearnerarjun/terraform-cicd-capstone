@@ -1,22 +1,31 @@
-# 1. Artifact Bucket
+############################################
+# 1) Artifact Bucket
+############################################
+resource "random_id" "suffix" {
+  byte_length = 3
+}
+
 resource "aws_s3_bucket" "codepipeline_bucket" {
   bucket        = "${var.project_name}-artifacts-${random_id.suffix.hex}"
   force_destroy = true
 }
 
-resource "random_id" "suffix" {
-  byte_length = 3
-}
 
-# 2. GitHub Connection (Version 2)
-# NOTE: After 'terraform apply', you must go to AWS Console 
-# Settings > Connections to "Update pending connection".
+############################################
+# 2) GitHub Connection (CodeStar Connections v2)
+# After 'terraform apply', go to:
+# AWS Console → Developer Tools → Connections → "Update pending connection"
+############################################
 resource "aws_codestarconnections_connection" "github" {
   name          = "github-connection"
   provider_type = "GitHub"
 }
 
-# 3. IAM Role for both Build and Pipeline
+
+############################################
+# 3) IAM Role & Policy (shared for demo: CodePipeline + CodeBuild)
+# (For production, split into separate service roles.)
+############################################
 resource "aws_iam_role" "pipeline_role" {
   name = "${var.project_name}-pipeline-role"
 
@@ -39,11 +48,10 @@ resource "aws_iam_role_policy" "pipeline_policy" {
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
+      # S3 artifacts (pipeline + build)
       {
         Effect = "Allow"
-        Action = [
-          "s3:*"
-        ]
+        Action = ["s3:*"]
         Resource = [
           aws_s3_bucket.codepipeline_bucket.arn,
           "${aws_s3_bucket.codepipeline_bucket.arn}/*",
@@ -51,24 +59,18 @@ resource "aws_iam_role_policy" "pipeline_policy" {
           "arn:aws:s3:::group2-terraform-state/*"
         ]
       },
+      # Core services (demo-wide for simplicity)
       {
-        Effect = "Allow"
-        Action = [
-          "codepipeline:*",
-          "codebuild:*",
-          "codestar-connections:*",
-          "codedeploy:*"
-        ]
+        Effect   = "Allow"
+        Action   = ["codepipeline:*", "codebuild:*", "codestar-connections:*", "codedeploy:*"]
         Resource = "*"
       },
       {
-        Effect = "Allow"
-        Action = [
-          "ec2:*",
-          "elasticloadbalancing:*"
-        ]
+        Effect   = "Allow"
+        Action   = ["ec2:*", "elasticloadbalancing:*"]
         Resource = "*"
       },
+      # IAM usage for build/deploy flows
       {
         Effect = "Allow"
         Action = [
@@ -86,49 +88,38 @@ resource "aws_iam_role_policy" "pipeline_policy" {
         ]
         Resource = "*"
       },
+      # (Optional) EventBridge mgmt not required anymore since we removed custom rule
       {
-        Effect = "Allow"
-        Action = [
-          "events:DescribeRule",
-          "events:ListRules",
-          "events:ListTargetsByRule",
-          "events:ListTagsForResource",
-          "events:PutRule",
-          "events:PutTargets",
-          "events:RemoveTargets",
-          "events:DeleteRule"
-        ]
+        Effect   = "Allow"
+        Action   = ["events:DescribeRule", "events:ListRules", "events:ListTargetsByRule", "events:ListTagsForResource", "events:PutRule", "events:PutTargets", "events:RemoveTargets", "events:DeleteRule"]
         Resource = "*"
       },
+      # Logs for CodeBuild
       {
-        Effect = "Allow"
-        Action = [
-          "logs:CreateLogGroup",
-          "logs:CreateLogStream",
-          "logs:PutLogEvents",
-          "logs:DescribeLogStreams"
-        ]
+        Effect   = "Allow"
+        Action   = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents", "logs:DescribeLogStreams"]
         Resource = "arn:aws:logs:*:*:*"
       },
+      # CloudFormation/CloudWatch (if used by your build/deploy)
       {
-        Effect = "Allow"
-        Action = [
-          "cloudformation:*",
-          "cloudwatch:*"
-        ]
+        Effect   = "Allow"
+        Action   = ["cloudformation:*", "cloudwatch:*"]
         Resource = "*"
       }
     ]
   })
 }
 
-# 4. CodeBuild Project
+
+############################################
+# 4) CodeBuild Project (source from CodePipeline)
+############################################
 resource "aws_codebuild_project" "terraform_build" {
   name         = "${var.project_name}-build"
   service_role = aws_iam_role.pipeline_role.arn
 
   artifacts {
-    type = "CODEPIPELINE" # Required when using CodePipeline
+    type = "CODEPIPELINE"
   }
 
   environment {
@@ -139,17 +130,20 @@ resource "aws_codebuild_project" "terraform_build" {
   }
 
   source {
-    type      = "CODEPIPELINE" # Required when using CodePipeline
+    type      = "CODEPIPELINE"
     buildspec = "buildspec.yml"
   }
 }
 
-# 5. CodePipeline
+
+############################################
+# 5) CodePipeline (CodeStarSourceConnection + DetectChanges)
+############################################
 resource "aws_codepipeline" "terraform_pipeline" {
-  name             = "${var.project_name}-pipeline"
-  role_arn         = aws_iam_role.pipeline_role.arn
-  pipeline_type    = "V2"
-  execution_mode   = "QUEUED"
+  name           = "${var.project_name}-pipeline"
+  role_arn       = aws_iam_role.pipeline_role.arn
+  pipeline_type  = "V2"
+  execution_mode = "QUEUED"
 
   artifact_store {
     type     = "S3"
@@ -168,9 +162,11 @@ resource "aws_codepipeline" "terraform_pipeline" {
       output_artifacts = ["SourceOutput"]
 
       configuration = {
-        ConnectionArn    = aws_codestarconnections_connection.github.arn
-        FullRepositoryId = "truelearnerarjun/terraform-cicd-capstone"
-        BranchName       = "main"
+        ConnectionArn     = aws_codestarconnections_connection.github.arn
+        FullRepositoryId  = "truelearnerarjun/terraform-cicd-capstone"
+        BranchName        = "main"
+        DetectChanges     = "true"  # enables auto-trigger on push via CodeStar Connections
+        # Optional: OutputArtifactFormat = "CODEBUILD_CLONE_REF"
       }
     }
   }
@@ -197,60 +193,4 @@ resource "aws_codepipeline" "terraform_pipeline" {
     aws_iam_role_policy.pipeline_policy,
     aws_s3_bucket.codepipeline_bucket
   ]
-}
-
-# EventBridge Rule for automatic pipeline triggering on GitHub push
-resource "aws_cloudwatch_event_rule" "github_push" {
-  name        = "${var.project_name}-github-push"
-  description = "Trigger CodePipeline on GitHub push"
-
-  event_pattern = jsonencode({
-    source      = ["aws.codestar-connections"]
-    detail-type = ["CodeStar Connections Repository State Change"]
-    detail = {
-      event = ["push"]
-      referenceType = ["branch"]
-      referenceName = ["main"]
-      repositoryName = ["terraform-cicd-capstone"]
-    }
-  })
-}
-
-resource "aws_cloudwatch_event_target" "codepipeline" {
-  rule      = aws_cloudwatch_event_rule.github_push.name
-  target_id = "CodePipeline"
-  arn       = aws_codepipeline.terraform_pipeline.arn
-  role_arn  = aws_iam_role.eventbridge_role.arn
-}
-
-# IAM Role for EventBridge
-resource "aws_iam_role" "eventbridge_role" {
-  name = "${var.project_name}-eventbridge-role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Effect = "Allow"
-      Principal = {
-        Service = "events.amazonaws.com"
-      }
-      Action = "sts:AssumeRole"
-    }]
-  })
-}
-
-resource "aws_iam_role_policy" "eventbridge_policy" {
-  name = "${var.project_name}-eventbridge-policy"
-  role = aws_iam_role.eventbridge_role.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Effect = "Allow"
-      Action = [
-        "codepipeline:StartPipelineExecution"
-      ]
-      Resource = aws_codepipeline.terraform_pipeline.arn
-    }]
-  })
 }
