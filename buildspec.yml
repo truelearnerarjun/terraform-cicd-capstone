@@ -23,3 +23,4 @@ phases:
 artifacts:
   files:
     - '**/*'
+# End of file: buildspec.yml
