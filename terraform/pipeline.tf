@@ -32,9 +32,57 @@ resource "aws_iam_role" "pipeline_role" {
   })
 }
 
-resource "aws_iam_role_policy_attachment" "pipeline_admin" {
-  role       = aws_iam_role.pipeline_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
+resource "aws_iam_role_policy" "pipeline_policy" {
+  name = "${var.project_name}-pipeline-policy"
+  role = aws_iam_role.pipeline_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:GetObject",
+          "s3:PutObject",
+          "s3:GetBucketVersioning"
+        ]
+        Resource = [
+          aws_s3_bucket.codepipeline_bucket.arn,
+          "${aws_s3_bucket.codepipeline_bucket.arn}/*"
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:GetObject",
+          "s3:PutObject"
+        ]
+        Resource = "arn:aws:s3:::group2-terraform-state/*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "ec2:*",
+          "elasticloadbalancing:*",
+          "iam:GetRole",
+          "iam:PassRole",
+          "iam:CreateRole",
+          "iam:PutRolePolicy",
+          "iam:AttachRolePolicy"
+        ]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents"
+        ]
+        Resource = "arn:aws:logs:*:*:*"
+      }
+    ]
+  })
 }
 
 # 4. CodeBuild Project
@@ -109,7 +157,7 @@ resource "aws_codepipeline" "terraform_pipeline" {
   }
 
   depends_on = [
-    aws_iam_role_policy_attachment.pipeline_admin,
+    aws_iam_role_policy.pipeline_policy,
     aws_s3_bucket.codepipeline_bucket
   ]
 }

@@ -7,12 +7,14 @@ terraform {
       version = "~> 5.0"
     }
   }
+  
+backend "s3" {
+  bucket = "group2-terraform-state"
+  key    = "cicd/terraform.tfstate"
+  region = "us-east-1"
+  encrypt = true  # ← ADD THIS (encrypt state file)
+}
 
-  backend "s3" {
-    bucket = "group2-terraform-state"
-    key    = "cicd/terraform.tfstate"
-    region = "us-east-1"
-  }
 }
 
 provider "aws" {
