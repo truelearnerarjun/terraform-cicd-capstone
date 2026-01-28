@@ -55,3 +55,6 @@ terraform destroy -auto-approve
 - **Permission Errors**: Check IAM role policies
 - **CodeDeploy Agent**: `sudo systemctl status codedeploy-agent`
 - **GitHub Connection**: Authorize in AWS Console → Connections
+
+
+From here project ends
