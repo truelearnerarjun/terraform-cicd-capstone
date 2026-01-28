@@ -66,7 +66,16 @@ resource "aws_iam_role_policy" "pipeline_policy" {
           "dynamodb:GetItem",
           "dynamodb:PutItem",
           "dynamodb:DeleteItem",
-          "dynamodb:DescribeTable"
+          "dynamodb:DescribeTable",
+          "dynamodb:DescribeContinuousBackups",
+          "dynamodb:CreateTable",
+          "dynamodb:DeleteTable",
+          "dynamodb:UpdateTable",
+          "dynamodb:TagResource",
+          "dynamodb:UntagResource",
+          "dynamodb:UpdateContinuousBackups",
+          "dynamodb:Scan",
+          "dynamodb:Query"
         ]
         Resource = aws_dynamodb_table.terraform_locks.arn
       },
