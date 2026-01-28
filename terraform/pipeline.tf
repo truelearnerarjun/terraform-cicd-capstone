@@ -62,21 +62,7 @@ resource "aws_iam_role_policy" "pipeline_policy" {
       # DynamoDB for Terraform state locking
       {
         Effect = "Allow"
-        Action = [
-          "dynamodb:GetItem",
-          "dynamodb:PutItem",
-          "dynamodb:DeleteItem",
-          "dynamodb:DescribeTable",
-          "dynamodb:DescribeContinuousBackups",
-          "dynamodb:CreateTable",
-          "dynamodb:DeleteTable",
-          "dynamodb:UpdateTable",
-          "dynamodb:TagResource",
-          "dynamodb:UntagResource",
-          "dynamodb:UpdateContinuousBackups",
-          "dynamodb:Scan",
-          "dynamodb:Query"
-        ]
+        Action = "dynamodb:*"
         Resource = aws_dynamodb_table.terraform_locks.arn
       },
       # Core services (demo-wide for simplicity)
