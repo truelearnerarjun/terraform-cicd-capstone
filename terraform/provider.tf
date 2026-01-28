@@ -13,6 +13,7 @@ backend "s3" {
   key    = "cicd/terraform.tfstate"
   region = "us-east-1"
   encrypt = true  # ← ADD THIS (encrypt state file)
+  dynamodb_table = "group2-cicd-terraform-locks"
 }
 
 }
