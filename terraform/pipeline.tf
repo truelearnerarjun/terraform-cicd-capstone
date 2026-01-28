@@ -65,7 +65,8 @@ resource "aws_iam_role_policy" "pipeline_policy" {
         Action = [
           "dynamodb:GetItem",
           "dynamodb:PutItem",
-          "dynamodb:DeleteItem"
+          "dynamodb:DeleteItem",
+          "dynamodb:DescribeTable"
         ]
         Resource = aws_dynamodb_table.terraform_locks.arn
       },
