@@ -59,6 +59,16 @@ resource "aws_iam_role_policy" "pipeline_policy" {
           "arn:aws:s3:::group2-terraform-state/*"
         ]
       },
+      # DynamoDB for Terraform state locking
+      {
+        Effect = "Allow"
+        Action = [
+          "dynamodb:GetItem",
+          "dynamodb:PutItem",
+          "dynamodb:DeleteItem"
+        ]
+        Resource = aws_dynamodb_table.terraform_locks.arn
+      },
       # Core services (demo-wide for simplicity)
       {
         Effect   = "Allow"
