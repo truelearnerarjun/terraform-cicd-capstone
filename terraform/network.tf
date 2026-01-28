@@ -26,4 +26,7 @@ resource "aws_subnet" "public_3" {
   cidr_block              = "10.0.3.0/24"
   availability_zone       = "us-east-1c"
   map_public_ip_on_launch = true
+  tags={
+    Name="${var.project_name}-public3"
+  }
 }
